@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "page_list.h"
 
 typedef struct _page {
   void *buffer;
@@ -24,7 +25,7 @@ static page * page_new(size_t record_size, size_t records_per_page) {
   return p;
 }
 
-int no_space_left(page_list *list) {
+static int no_space_left(page_list *list) {
   page *last_page = list->last;
   if(list->records_per_page > last_page->record_count)
     return 0;
@@ -32,17 +33,18 @@ int no_space_left(page_list *list) {
     return 1;
 }
 
-page_list * page_list_new(size_t record_size, size_t records_per_page) {
+void * page_list_new(size_t record_size, size_t records_per_page) {
   page_list *list = malloc(sizeof(page_list));
   list->first = page_new(record_size, records_per_page);
   list->last = list->first;
   list->record_size = record_size;
   list->records_per_page = records_per_page;
   list->record_count = 0;
-  return list;
+  return (void *)list;
 }
 
-void page_list_add_record(page_list *list, void *record) {
+void page_list_add_record(void *plist, void *record) {
+  page_list *list = (page_list *)plist;
   if(no_space_left(list)) {
     page *new_page = page_new(list->record_size, list->records_per_page);
     list->last->next = new_page;
@@ -54,7 +56,8 @@ void page_list_add_record(page_list *list, void *record) {
   list->record_count++;
 }
 
-void * page_list_get_record_by_index(page_list *list, size_t index) {
+void * page_list_get_record_by_index(void *plist, size_t index) {
+  page_list *list = (page_list *)plist;
   if(index > list->record_count)
     return NULL;
   size_t page_number = index/list->records_per_page;
@@ -66,7 +69,8 @@ void * page_list_get_record_by_index(page_list *list, size_t index) {
   return (void *)(current_page->buffer + (list->record_size * page_offset) );
 }
 
-void page_list_for_each_record(page_list *list, void (*each_callback) (void *record)) {
+void page_list_for_each_record(void *plist, void (*each_callback) (void *record)) {
+  page_list *list = (page_list *)plist;
   page *current_page = list->first;
   while(current_page) {
     for (int i = 0; i < current_page->record_count; ++i) {
@@ -76,7 +80,8 @@ void page_list_for_each_record(page_list *list, void (*each_callback) (void *rec
   }
 }
 
-void page_list_free(page_list *list){
+void page_list_free(void *plist){
+  page_list *list = (page_list *)plist;
   page *current_page = list->first;
   page *prev_page = NULL;
   while(current_page) {
