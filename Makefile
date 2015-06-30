@@ -1,3 +1,2 @@
 CFLAGS=-g
-page_list: page_list.o
-page_list.o: page_list.h
+page_list: test.o page_list.o
